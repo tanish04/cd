@@ -1,0 +1,343 @@
+Q1. Write a Lex program to count the number of lines and characters in the input file.
+%{
+int lines = 0, chars = 0;
+%}
+%%
+\n      { lines++; chars++; }
+.       { chars++; }
+%%
+int main() {
+    yylex();
+    printf("Lines: %d\nCharacters: %d\n", lines, chars);
+    return 0;
+}
+int yywrap(void) {
+    return 1;
+}
+Q2. Lex program to count the number of vowels and consonants in a given string
+%{
+int v=0, c=0;
+%}
+
+%%
+[AEIOUaeiou]   { v++; }
+[a-zA-Z]       { c++; }
+.|\n           ;
+%%
+
+int main() {
+    yylex();
+    printf("Vowels: %d\nConsonants: %d\n", v, c);
+    return 0;
+}
+
+int yywrap(void) {
+    return 1;
+}
+Q3. Write a Lex program that implements the Caesar cipher: it replaces every letter with the one three letters after in in alphabetical order, wrapping around at Z. e.g. a is replaced by d, b by e, and so on z by c.
+%{
+char shift(char c) {
+    if(c >= 'a' && c <= 'z') return 'a' + (c - 'a' + 3) % 26;
+    if(c >= 'A' && c <= 'Z') return 'A' + (c - 'A' + 3) % 26;
+    return c;
+}
+%}
+%%
+.    { putchar(shift(yytext[0])); }
+%%
+int main() { yylex(); return 0; }
+int yywrap(void) {
+    return 1;
+}
+Q4. Write a Lex program that finds the longest word (defined as a contiguous string of upper and lower case letters) in the input.
+%{
+int maxlen = 0;
+char longest[100], current[100];
+%}
+%%
+[a-zA-Z]+ {
+    if (yylen > maxlen) {
+        maxlen = yylen;
+        strcpy(longest, yytext);
+    }
+}
+.|\n ;
+%%
+int main() {
+    yylex();
+    printf("Longest word: %s\nLength: %d\n", longest, maxlen);
+    return 0;
+}
+int yywrap(void) {
+    return 1;
+}
+Q5. Write a Lex program that distinguishes keywords, integers, floats, identifiers, operators, and comments in any simple programming language.
+%{
+#include <stdio.h>
+#include <ctype.h>
+#include <string.h>
+%}
+KEYWORD     int|float|if|else|while|return
+IDENTIFIER  [a-zA-Z_][a-zA-Z0-9_]*
+INTEGER     [0-9]+
+FLOAT       [0-9]+\.[0-9]+
+OP          [+\-*/<>]
+COMMENT     //[^\n]*
+%%
+{KEYWORD}      { printf("Keyword: %s\n", yytext); }
+{FLOAT}        { printf("Float: %s\n", yytext); }
+{INTEGER}      { printf("Integer: %s\n", yytext); }
+{IDENTIFIER}   { printf("Identifier: %s\n", yytext); }
+{OP}           { printf("Operator: %s\n", yytext); }
+[ \t\n]+       ;   /* ignore whitespace */
+.              { printf("Other: %s\n", yytext); }
+%%
+int main(void) {
+    yylex();
+    return 0;
+}
+int yywrap(void) {
+    return 1;
+}
+Q6. Write a Lex program to count the number of words, characters, blank spaces and lines in a C file.
+%{
+int chars=0, words=0, lines=0, blanks=0;
+%}
+%%
+[a-zA-Z0-9_]+     { words++; chars+=yyleng; }
+" "               { blanks++; chars++; }
+\n                { lines++; chars++; }
+.                 { chars++; }
+%%
+int main() {
+    yylex();
+    printf("Lines: %d\nWords: %d\nBlanks: %d\nChars: %d\n", lines, words, blanks, chars);
+    return 0;
+}
+Q7. Write a Lex specification program that generates a C program which takes a string “abcd” and prints the following output: abcd abc ab a
+%{
+int main() {
+    char str[] = "abcd";
+    int n = strlen(str);
+    for(int i = n; i > 0; i--) {
+        for(int j = 0; j < i; j++)
+            printf("%c", str[j]);
+        printf("\n");
+    }
+    return 0;
+}
+%}
+%%
+%%
+int yywrap(void) {
+    return 1;
+}
+Q8. A program in Lex to recognize a valid arithmetic expression. 
+%{
+int valid = 1;
+%}
+%%
+([0-9]+|[a-zA-Z]+)([+\-*/]([0-9]+|[a-zA-Z]+))*   { printf("Valid expression\n"); }
+.| \n ;
+%%
+int main() {
+    yylex();
+    return 0;
+}
+int yywrap(void) {
+    return 1;
+}
+Q9. Write a YACC program to find the validity of a given expression (for operators + - * and /)A program in YACC which recognizes a valid variable which starts with letter followed by a digit. The letter should be in lowercase only. 
+
+#yacc code
+%{
+#include <stdio.h>
+#include <ctype.h>
+int valid = 1;
+%}
+
+%token ID NUM
+%left '+' '-'
+%left '*' '/'
+
+%%
+S : E '\n'  { if(valid) printf("Valid expression\n"); else printf("Invalid expression\n"); }
+  ;
+
+E : E '+' E
+  | E '-' E
+  | E '*' E
+  | E '/' E
+  | ID
+  | NUM
+  ;
+
+%%
+
+int yyerror() {
+    valid = 0;
+    return 0;
+}
+
+int main() {
+    printf("Enter expression: ");
+    yyparse();
+    return 0;
+}
+
+#lex code to scan (different file)
+%{
+#include "y.tab.h"
+%}
+
+ID  [a-z][0-9]+
+NUM [0-9]+
+
+%%
+{ID}    { return ID; }
+{NUM}   { return NUM; }
+[+\-*/] return yytext[0];
+[ \t]   ;
+\n      return '\n';
+.       return 0;
+%%
+Q10. A Program in YACC to evaluate an expression (simple calculator program for addition and subtraction, multiplication, division). 
+#yacc code
+%{
+#include <stdio.h>
+#include <stdlib.h>
+%}
+
+%token NUM
+%left '+' '-'
+%left '*' '/'
+%%
+S : E '\n' { printf("Result = %d\n", $$); }
+  ;
+
+E : E '+' E { $$ = $1 + $3; }
+  | E '-' E { $$ = $1 - $3; }
+  | E '*' E { $$ = $1 * $3; }
+  | E '/' E { $$ = $1 / $3; }
+  | NUM     { $$ = $1; }
+  ;
+%%
+int main() {
+    printf("Simple Calculator:\n");
+    yyparse();
+    return 0;
+}
+int yyerror() { printf("Invalid Expression\n"); }
+
+#lex code to scan 
+%{
+#include "y.tab.h"
+%}
+NUM [0-9]+
+%%
+{NUM}  { yylval = atoi(yytext); return NUM; }
+[+\-*/] return yytext[0];
+[ \t] ;
+\n return '\n';
+.  return 0;
+%%
+Q11. Program in YACC to recognize the string „abbb‟, „ab‟ „a‟ of the langauge (an b n , n>=1). 
+#yacc code 
+%{
+#include <stdio.h>
+int valid = 1;
+%}
+
+%token A B
+
+%%
+S : AB '\n' { if(valid) printf("Valid String\n"); else printf("Invalid\n"); }
+  ;
+
+AB : A B
+   | A AB B
+   ;
+%%
+int main() {
+    printf("Enter string: ");
+    yyparse();
+    return 0;
+}
+
+int yyerror() {
+    valid = 0;
+    return 0;
+}
+
+#lex code
+%{
+#include "y.tab.h"
+%}
+%%
+"a" { return A; }
+"b" { return B; }
+\n  return '\n';
+.   return 0;
+%%
+Q12. Program in YACC to recognize the language (an b , n>=10). (output to say input is valid or not)
+
+#yacc code 
+%{
+#include <stdio.h>
+int acount = 0;
+%}
+
+%token A B
+
+%%
+S : A10plus B '\n' { printf("Valid\n"); }
+  ;
+
+A10plus : Aseq { if(acount < 10) yyerror(); }
+        ;
+
+Aseq : Aseq A { acount++; }
+     | A      { acount = 1; }
+     ;
+%%
+int main() {
+    acount = 0;
+    printf("Enter string: ");
+    yyparse();
+    return 0;
+}
+
+int yyerror() {
+    printf("Invalid\n");
+    return 0;
+}
+
+#lex code to scan
+
+%{
+#include "y.tab.h"
+%}
+%%
+"a" { return A; }
+"b" { return B; }
+\n  return '\n';
+.   return 0;
+%%
+
+HOW TO RUN THE CODE: (FOR YACC AND LEX PROGRAMS)
+bison -d q10.y
+win_flex q10.l
+gcc lex.yy.c q10.tab.c -o q10.exe
+q10.exe
+
+OR
+
+flex file.l
+bison -d file.y
+gcc lex.yy.c file.tab.c -o output
+./output
+
+HOW TO RUN THE CODE: (FOR LEX ONLY) 
+win_flex q1.l
+gcc lex.yy.c -o q1.exe
+q1.exe
